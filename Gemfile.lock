@@ -1,6 +1,7 @@
 GIT
   remote: https://github.com/railslove/camt_parser.git
-  revision: 8402acc6c78916184d26d488c500d5b3996a5572
+  revision: e32c2cd0accd00d253da3ebc093fd4f3627b3e67
+  ref: e32c2cd0accd00d253da3ebc093fd4f3627b3e67
   specs:
     camt_parser (1.0.2)
       nokogiri

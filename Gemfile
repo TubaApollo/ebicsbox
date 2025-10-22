@@ -5,7 +5,7 @@ source "https://rubygems.org"
 ruby "3.3.2"
 
 gem "activesupport"
-gem "camt_parser", git: "https://github.com/railslove/camt_parser.git"
+gem "camt_parser", git: "https://github.com/railslove/camt_parser.git", ref: "e32c2cd0accd00d253da3ebc093fd4f3627b3e67"
 gem "cmxl", git: "https://github.com/railslove/cmxl"
 gem "epics"
 gem "faraday"
