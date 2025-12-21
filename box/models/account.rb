@@ -45,8 +45,8 @@ module Box
         query = self
         # Filter by status
         case params[:status]
-        when "activated" then query.eager_graph(:ebics_users).exclude(ebics_users__activated_at: nil)
-        when "not_activated" then query.eager_graph(:ebics_users).where(ebics_users__activated_at: nil)
+        when "activated" then query.eager_graph(:ebics_users).exclude(Sequel.qualify(:ebics_users, :activated_at) => nil)
+        when "not_activated" then query.eager_graph(:ebics_users).where(Sequel.qualify(:ebics_users, :activated_at) => nil)
         else query
         end
       end
@@ -70,8 +70,8 @@ module Box
 
     def transport_client
       @transport_client ||= begin
-        base_scope = ebics_users_dataset.exclude(ebics_users__activated_at: nil)
-        ebics_user = base_scope.where(ebics_users__signature_class: "T").first || base_scope.first
+        base_scope = ebics_users_dataset.exclude(Sequel.qualify(:ebics_users, :activated_at) => nil)
+        ebics_user = base_scope.where(Sequel.qualify(:ebics_users, :signature_class) => "T").first || base_scope.first
         if ebics_user.nil?
           raise NoTransportClient, "Please setup and activate at least one ebics_user with a transport signature"
         else
@@ -89,7 +89,7 @@ module Box
     end
 
     def self.all_active_ids
-      association_join(:ebics_users).select(:accounts__id).exclude(ebics_users__activated_at: nil).map(&:id)
+      association_join(:ebics_users).select(Sequel.qualify(:accounts, :id)).exclude(Sequel.qualify(:ebics_users, :activated_at) => nil).map(&:id)
     end
 
     def active?
@@ -130,10 +130,14 @@ module Box
       iban[0...2]
     end
 
+    def ebics_namespace
+      Box.configuration.ebics_version_h005? ? "urn:org:ebics:H005" : "urn:org:ebics:H004"
+    end
+
     def bank_account_metadata
       Nokogiri::XML(transport_client.HTD).tap do |htd|
-        @bank_account_number ||= htd.at_xpath("//xmlns:AccountNumber[@international='false']", xmlns: "urn:org:ebics:H004").text
-        @bank_number ||= htd.at_xpath("//xmlns:BankCode[@international='false']", xmlns: "urn:org:ebics:H004").text
+        @bank_account_number ||= htd.at_xpath("//xmlns:AccountNumber[@international='false']", xmlns: ebics_namespace).text
+        @bank_number ||= htd.at_xpath("//xmlns:BankCode[@international='false']", xmlns: ebics_namespace).text
       end
     end
 

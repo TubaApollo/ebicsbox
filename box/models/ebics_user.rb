@@ -41,7 +41,8 @@ module Box
 
     def client
       account = first_account
-      @client ||= account.client_adapter.new(encryption_keys, passphrase, account.url, account.host, remote_user_id, partner)
+      version = Box.configuration.ebics_version_h005? ? Epics::Keyring::VERSION_30 : Epics::Keyring::VERSION_25
+      @client ||= account.client_adapter.new(encryption_keys, passphrase, account.url, account.host, remote_user_id, partner, version: version)
     end
 
     def setup!(account, reset = false)
@@ -51,7 +52,8 @@ module Box
 
       # TODO: handle exceptions
       Box.logger.info("setting up EBICS keys for ebics_user #{id}")
-      epics = account.client_adapter.setup(passphrase, account.url, account.host, remote_user_id, account.partner)
+      version = Box.configuration.ebics_version_h005? ? Epics::Keyring::VERSION_30 : Epics::Keyring::VERSION_25
+      epics = account.client_adapter.setup(passphrase, account.url, account.host, remote_user_id, account.partner, 2048, version: version)
       self.encryption_keys = epics.send(:dump_keys)
       save
 

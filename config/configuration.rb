@@ -29,6 +29,15 @@ module Box
       (ENV["EBICS_CLIENT"] || "Epics::Client").constantize
     end
 
+    # EBICS protocol version: H004 (EBICS 2.5) or H005 (EBICS 3.0)
+    def ebics_version
+      ENV["EBICS_VERSION"] || "H004"
+    end
+
+    def ebics_version_h005?
+      ebics_version == "H005"
+    end
+
     def db_passphrase
       ENV.fetch("PASSPHRASE")
     rescue KeyError
