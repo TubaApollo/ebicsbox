@@ -1,0 +1,23 @@
+#!/bin/bash
+set -e
+
+echo "==> Installing dependencies (runtime)..."
+bundle config set --local path 'vendor/bundle'
+bundle install --jobs 4
+
+echo "==> Running migrations..."
+bundle exec bin/migrate
+
+if [ "$1" = "server" ]; then
+  echo "==> Starting server on port $PORT..."
+  bundle exec puma config.ru -p $PORT
+fi
+
+if [ "$1" = "worker" ]; then
+  echo "==> Starting Sidekiq worker..."
+  bundle exec sidekiq -C config/sidekiq.yml -r /usr/ebicsbox/config/sidekiq.rb
+fi
+
+if [ "$1" = "all" ]; then
+  /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf
+fi

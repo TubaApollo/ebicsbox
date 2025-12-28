@@ -1,4 +1,18 @@
 GIT
+  remote: https://github.com/TubaApollo/epics.git
+  revision: 6bb976d845433364618c2c813994c051881ee72a
+  branch: h005-support
+  specs:
+    epics (2.9.0)
+      base64
+      bigdecimal
+      faraday (>= 1.10.0)
+      i18n (>= 1.1.0)
+      nokogiri (>= 1.16.7)
+      rexml (>= 3.3.7)
+      rubyzip (>= 2.3.2)
+
+GIT
   remote: https://github.com/railslove/camt_parser.git
   revision: 3996d9dce6c4dbdc950c6d607102e3c4ce52ca52
   specs:
@@ -74,11 +88,6 @@ GEM
       dry-inflector (~> 1.0)
       dry-logic (~> 1.4)
       zeitwerk (~> 2.6)
-    epics (2.4.0)
-      faraday (>= 1.10.0)
-      nokogiri (>= 1.16.5)
-      rexml (>= 3.2.8)
-      rubyzip (>= 2.3.2)
     et-orbi (1.2.11)
       tzinfo
     fabrication (2.22.0)
@@ -134,7 +143,7 @@ GEM
       uri
     netrc (0.11.0)
     nio4r (2.7.4)
-    nokogiri (1.16.6)
+    nokogiri (1.18.10)
       mini_portile2 (~> 2.8.2)
       racc (~> 1.4)
     parallel (1.25.1)
@@ -201,7 +210,7 @@ GEM
       rubocop-ast (>= 1.31.1, < 2.0)
     ruby-progressbar (1.13.0)
     ruby2_keywords (0.0.5)
-    rubyzip (2.3.2)
+    rubyzip (3.2.2)
     rufus-scheduler (3.9.1)
       fugit (~> 1.1, >= 1.1.6)
     sentry-ruby (5.22.1)
@@ -264,7 +273,7 @@ DEPENDENCIES
   cmxl!
   database_cleaner-sequel
   dotenv
-  epics
+  epics!
   fabrication
   faker
   faraday

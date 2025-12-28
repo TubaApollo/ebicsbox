@@ -1,0 +1,109 @@
+version: "3.7"
+
+networks:
+  ebicsbox_internal:
+    # Internal network for ebicsbox services
+  web:
+    # Connect to Traefik network
+    external: true
+  erpnext:
+    # Connect to ERPNext network for internal communication
+    external: true
+    name: erpnextfrappe_frappe_network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: always
+    networks:
+      - ebicsbox_internal
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db:
+    image: postgres:15-alpine
+    restart: always
+    shm_size: 128mb
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-ebicsbox}
+      - POSTGRES_USER=${POSTGRES_USER:-ebicsbox}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    networks:
+      - ebicsbox_internal
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ebicsbox}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    restart: always
+    environment:
+      - AUTH_SERVICE=${AUTH_SERVICE:-static}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-ebicsbox}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB:-ebicsbox}
+      - PASSPHRASE=${PASSPHRASE}
+      - PORT=5000
+      - REDIS_URL=redis://redis:6379
+      - SECRET_TOKEN=${SECRET_TOKEN}
+      - UI_INITIAL_SETUP=${UI_INITIAL_SETUP:-enabled}
+      - UPDATE_BANK_STATEMENTS_INTERVAL=${UPDATE_BANK_STATEMENTS_INTERVAL:-60}
+      - UPDATE_PROCESSING_STATUS_INTERVAL=${UPDATE_PROCESSING_STATUS_INTERVAL:-360}
+      - ACTIVATE_EBICS_USER_INTERVAL=${ACTIVATE_EBICS_USER_INTERVAL:-60}
+      - UPCOMING_STATEMENTS_INTERVAL=${UPCOMING_STATEMENTS_INTERVAL:-60}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/usr/ebicsbox
+    command: bin/start server
+    networks:
+      - ebicsbox_internal
+      - web
+      - erpnext
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ebicsbox.rule=Host(`ebics.kreckler.shop`)"
+      - "traefik.http.routers.ebicsbox.entrypoints=websecure"
+      - "traefik.http.routers.ebicsbox.tls.certresolver=letsencrypt"
+      - "traefik.http.services.ebicsbox.loadbalancer.server.port=5000"
+      - "traefik.docker.network=web"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  worker:
+    build: .
+    restart: always
+    environment:
+      - AUTH_SERVICE=${AUTH_SERVICE:-static}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-ebicsbox}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB:-ebicsbox}
+      - PASSPHRASE=${PASSPHRASE}
+      - REDIS_URL=redis://redis:6379
+      - SECRET_TOKEN=${SECRET_TOKEN}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/usr/ebicsbox
+    command: bin/start worker
+    networks:
+      - ebicsbox_internal

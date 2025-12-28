@@ -1,0 +1,99 @@
+version: "3.7"
+
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - EBICS_VERSION=H005
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - .:/usr/ebicsbox
+      - /srv/epics-gem:/srv/epics-gem
+      - ebicsbox_bundle:/usr/ebicsbox/vendor/bundle
+    command: bin/start-dev server
+    depends_on:
+      - db
+      - redis
+    networks:
+      - default
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ebicsbox.rule=Host(`ebics.kreckler.shop`)"
+      - "traefik.http.routers.ebicsbox.entrypoints=websecure"
+      - "traefik.http.routers.ebicsbox.tls.certresolver=letsencrypt"
+      - "traefik.http.services.ebicsbox.loadbalancer.server.port=5000"
+      - "traefik.docker.network=web"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - EBICS_VERSION=H005
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - .:/usr/ebicsbox
+      - /srv/epics-gem:/srv/epics-gem
+      - ebicsbox_bundle:/usr/ebicsbox/vendor/bundle
+    command: bin/start-dev worker
+    depends_on:
+      - db
+      - redis
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "sidekiq"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  db:
+    image: postgres:14-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ebicsbox
+      POSTGRES_PASSWORD: ebicsbox
+      POSTGRES_DB: ebicsbox
+    volumes:
+      - ebicsbox_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ebicsbox"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  ebicsbox_db:
+  ebicsbox_bundle:
+
+networks:
+  default:
+    name: ebicsbox_dev
+  web:
+    external: true
